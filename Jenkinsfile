@@ -2,13 +2,13 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "yourdockerhubusername/spring-petclinic:${BUILD_NUMBER}"
+        DOCKER_IMAGE = "prathameshj08/spring-petclinic:${BUILD_NUMBER}"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/yourusername/spring-petclinic.git'
+                git 'https://github.com/PrathameshJ-08/spring-petclinic.git'
             }
         }
 
@@ -55,12 +55,12 @@ pipeline {
 
     post {
         success {
-            mail to: 'youremail@example.com',
+            mail to: 'jadhavprathamesh957@gmail.com',
                  subject: "SUCCESS: PetClinic Build #${BUILD_NUMBER}",
                  body: "Build Success!"
         }
         failure {
-            mail to: 'youremail@example.com',
+            mail to: 'jadhavprathamesh957@gmail.com',
                  subject: "FAILURE: PetClinic Build #${BUILD_NUMBER}",
                  body: "Build Failed!"
         }
