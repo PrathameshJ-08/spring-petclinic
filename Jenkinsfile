@@ -9,9 +9,7 @@ pipeline {
     environment {
         DOCKER_CREDENTIALS_ID = 'docker-hub'
         DOCKER_IMAGE = 'prathameshj08/pet-clinic'
-        DOCKER_TAG = "build-${env.BUILD_NUMBER}"
         GIT_REPO = "PrathameshJ-08/spring-petclinic"
-        DEPLOYMENT_FILE = "deployment.yml"
     }
 
     stages {
@@ -22,7 +20,7 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Build Application') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
@@ -33,26 +31,23 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
-                        docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        docker build -t ${DOCKER_IMAGE}:latest .
+                        docker push ${DOCKER_IMAGE}:latest
                         docker logout
                     '''
                 }
             }
         }
 
-        stage('Update Deployment File') {
+        stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                sshagent (credentials: ['kube-ssh']) {
                     sh '''
-                        git config --global user.email "jadhavprathamesh957@gmail.com"
-                        git config --global user.name "Prathamesh"
-
-                        sed -i "s|image: .*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|" ${DEPLOYMENT_FILE}
-
-                        git add ${DEPLOYMENT_FILE}
-                        git commit -m "Update deployment image to ${DOCKER_TAG}" || echo "No changes to commit"
-                        git push https://${GITHUB_TOKEN}@github.com/${GIT_REPO}.git HEAD:main
+                    ssh -o StrictHostKeyChecking=no ditiss@kube-VM "
+                        cd /home/ditiss/Desktop/Project &&
+                        kubectl apply -f deployment.yml &&
+                        kubectl rollout restart deployment petclinic-deployment
+                    "
                     '''
                 }
             }
@@ -61,13 +56,13 @@ pipeline {
 
     post {
         always {
-            echo "Build finished: ${currentBuild.result}"
+            echo "Build completed with status: ${currentBuild.result}"
         }
         success {
-            echo "✅ Build succeeded!"
+            echo "✅ Build and deployment succeeded!"
         }
         failure {
-            echo "❌ Build failed. Check the logs for details."
+            echo "❌ Build or deployment failed!"
         }
     }
 }
