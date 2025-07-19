@@ -6,48 +6,40 @@ pipeline {
     }
 
     stages {
-
-        stage('Checkout Code') {
-            steps {
-                git branch: 'main', url: 'https://github.com/PrathameshJ-08/spring-petclinic.git'
-            }
-        }
-
-        stage('Build with Maven') {
+        stage('Build') {
             steps {
                 sh './mvnw clean package -DskipTests'
             }
         }
 
-        stage('OWASP Dependency-Check') {
+        stage('Dependency Check') {
             steps {
                 withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
                     sh '''
-                        docker run --rm \
-                        -e NVD_API_KEY=$NVD_API_KEY \
-                        -v $(pwd):/src \
-                        owasp/dependency-check \
-                        --scan /src \
-                        --format HTML \
-                        --out /src/depcheck-report \
-                        --failOnCVSS 9.9 || true
+                    echo "nvd.api.key=$NVD_API_KEY" > dependency-check.properties
+
+                    docker run --rm \
+                    -v $(pwd):/src \
+                    owasp/dependency-check \
+                    --scan /src \
+                    --format HTML \
+                    --out /src/depcheck-report \
+                    --propertyfile /src/dependency-check.properties \
+                    --failOnCVSS 9.9 || true
+
+                    rm dependency-check.properties
                     '''
                 }
             }
         }
 
-        stage('Docker Build') {
+        stage('Docker Build & Push') {
             steps {
                 sh 'docker build -t $DOCKER_IMAGE .'
-            }
-        }
-
-        stage('Docker Push') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                     sh '''
-                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                        docker push $DOCKER_IMAGE
+                    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                    docker push $DOCKER_IMAGE
                     '''
                 }
             }
@@ -57,24 +49,6 @@ pipeline {
             steps {
                 cleanWs()
             }
-        }
-    }
-
-    post {
-        always {
-            archiveArtifacts artifacts: 'depcheck-report/*.html', allowEmptyArchive: true
-        }
-
-        success {
-            mail to: 'jadhavprathamesh957@gmail.com',
-                 subject: "SUCCESS: PetClinic Build #${BUILD_NUMBER}",
-                 body: "✅ Build succeeded and Docker image pushed: $DOCKER_IMAGE"
-        }
-
-        failure {
-            mail to: 'jadhavprathamesh957@gmail.com',
-                 subject: "FAILURE: PetClinic Build #${BUILD_NUMBER}",
-                 body: "❌ Build failed. Please check Jenkins console output."
         }
     }
 }
