@@ -12,18 +12,22 @@ pipeline {
             }
         }
 
-        stage('Run Dependency Check') {
-            steps {
-                sh '''
-                docker run --rm \
-                --volume $(pwd):/src \
-                owasp/dependency-check \
-                --scan /src \
-                --format HTML \
-                --out /src/depcheck-report
-                '''
-            }
+       stage('Run Dependency Check') {
+    steps {
+        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+            sh '''
+            docker run --rm \
+            -e NVD_API_KEY=$NVD_API_KEY \
+            --volume $(pwd):/src \
+            owasp/dependency-check \
+            --scan /src \
+            --format HTML \
+            --out /src/depcheck-report
+            '''
         }
+    }
+}
+
 
         stage('Docker Build') {
             steps {
