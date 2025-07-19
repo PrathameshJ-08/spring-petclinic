@@ -7,14 +7,15 @@ pipeline {
     }
 
     environment {
+        DOCKER_CREDENTIALS_ID = 'docker-hub'
         DOCKER_IMAGE = 'prathameshj08/pet-clinic'
         DOCKER_TAG = "build-${env.BUILD_NUMBER}"
         GIT_REPO = "PrathameshJ-08/spring-petclinic"
-        DEPLOYMENT_FILE = "deployment/deployment.yml"
+        DEPLOYMENT_FILE = "deployment.yml"
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 cleanWs()
                 git branch: 'main', credentialsId: 'github-account', url: "https://github.com/${GIT_REPO}.git"
@@ -29,13 +30,13 @@ pipeline {
 
         stage('Docker Build & Push') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh """
+                withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                         docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
                         docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
                         docker logout
-                    """
+                    '''
                 }
             }
         }
@@ -46,11 +47,11 @@ pipeline {
                     sh '''
                         git config --global user.email "jadhavprathamesh957@gmail.com"
                         git config --global user.name "Prathamesh"
-                        
+
                         sed -i "s|image: .*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|" ${DEPLOYMENT_FILE}
 
                         git add ${DEPLOYMENT_FILE}
-                        git commit -m "Update deployment to ${DOCKER_TAG}" || echo "No changes"
+                        git commit -m "Update deployment image to ${DOCKER_TAG}" || echo "No changes to commit"
                         git push https://${GITHUB_TOKEN}@github.com/${GIT_REPO}.git HEAD:main
                     '''
                 }
@@ -60,9 +61,13 @@ pipeline {
 
     post {
         always {
-            mail to: 'jadhavprathamesh957@gmail.com',
-                 subject: "Build ${env.BUILD_NUMBER} - ${currentBuild.result}",
-                 body: "Check the build at ${env.BUILD_URL}"
+            echo "Build finished: ${currentBuild.result}"
+        }
+        success {
+            echo "✅ Build succeeded!"
+        }
+        failure {
+            echo "❌ Build failed. Check the logs for details."
         }
     }
 }
