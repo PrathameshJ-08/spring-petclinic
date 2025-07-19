@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: petclinic
-        image: prathameshj08/pet-clinic:build-12
+        image: prathameshj08/pet-clinic:build-14
         ports:
         - containerPort: 8080
 
