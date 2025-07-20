@@ -9,18 +9,20 @@ pipeline {
     environment {
         DOCKER_CREDENTIALS_ID = 'docker-hub'
         DOCKER_IMAGE = 'prathameshj08/pet-clinic'
-        GIT_REPO = "PrathameshJ-08/spring-petclinic"
+        DOCKER_TAG = "build-${env.BUILD_NUMBER}"
+        DEPLOYMENT_FILE = "deployment.yml"
+        KUBE_VM = "ditiss@192.168.150.20"
     }
 
     stages {
         stage('Checkout Code') {
             steps {
                 cleanWs()
-                git branch: 'main', credentialsId: 'github-account', url: "https://github.com/${GIT_REPO}.git"
+                git branch: 'main', credentialsId: 'github-account', url: 'https://github.com/PrathameshJ-08/spring-petclinic.git'
             }
         }
 
-        stage('Build Application') {
+        stage('Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
@@ -31,23 +33,22 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker build -t ${DOCKER_IMAGE}:latest .
-                        docker push ${DOCKER_IMAGE}:latest
+                        docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                        docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
                         docker logout
                     '''
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Remote Deployment to Kube-VM') {
             steps {
                 sshagent (credentials: ['kube-ssh']) {
                     sh '''
-                    ssh -o StrictHostKeyChecking=no ditiss@kube-VM "
-                        cd /home/ditiss/Desktop/Project &&
-                        kubectl apply -f deployment.yml &&
-                        kubectl rollout restart deployment petclinic-deployment
-                    "
+                        ssh -o StrictHostKeyChecking=no ${KUBE_VM} '
+                            sed -i "s|image: .*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|" ~/Desktop/Project/deployment.yml &&
+                            kubectl apply -f ~/Desktop/Project/deployment.yml
+                        '
                     '''
                 }
             }
@@ -56,13 +57,13 @@ pipeline {
 
     post {
         always {
-            echo "Build completed with status: ${currentBuild.result}"
+            echo "Build finished: ${currentBuild.result}"
         }
         success {
-            echo "✅ Build and deployment succeeded!"
+            echo "✅ Build succeeded and deployed to Kube-VM!"
         }
         failure {
-            echo "❌ Build or deployment failed!"
+            echo "❌ Build or Deployment failed. Check Jenkins logs."
         }
     }
 }
