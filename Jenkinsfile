@@ -43,13 +43,6 @@ pipeline {
             }
         }
 
-        #stage('Dependency Vulnerability Scan') {
-            #steps {
-                #dependencyCheck additionalArguments: '--scan ./ --format HTML --out .', odcInstallation: 'DP-check'
-                #dependencyCheckPublisher pattern: '**/dependency-check-report.html'
-            }
-        }
-
             stage('Build & Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -73,7 +66,7 @@ pipeline {
                         git config --global user.name "Prathamesh"
                         
                         sed -i "s|image: .*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|" ${DEPLOYMENT_FILE}
-
+		
                         git add ${DEPLOYMENT_FILE}
                         git commit -m "Update deployment image to ${DOCKER_TAG}" || echo "No changes to commit"
                         git push https://${GITHUB_TOKEN}@github.com/${GIT_REPO}.git HEAD:main
@@ -94,3 +87,4 @@ pipeline {
             echo "❌ Build or deployment failed!"
         }
     }
+}
