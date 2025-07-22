@@ -7,6 +7,7 @@ pipeline {
     }
 
     environment {
+        SCANNER_HOME = tool 'sonar-scanner'
         DOCKER_CREDENTIALS_ID = 'docker-hub'
         DOCKER_IMAGE = 'prathameshj08/pet-clinic'
         DOCKER_TAG = "build-${env.BUILD_NUMBER}"
@@ -27,6 +28,30 @@ pipeline {
             }
         }
 
+        stage('Static Code Analysis with SonarQube') {
+            steps {
+                withSonarQubeEnv('Sonar-server') {
+                    sh '''
+                        ${SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=Petclinic \
+                        -Dsonar.projectName=Petclinic \
+                        -Dsonar.sources=. \
+                        -Dsonar.java.binaries=target/classes
+                    '''
+                }
+            }
+        }
+
+       stage('OWASP Dependency Check') {
+    steps {
+        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+            dependencyCheck additionalArguments: "--nvdApiKey ${NVD_API_KEY} --scan ./ --format HTML --out .", odcInstallation: 'DP-check'
+            dependencyCheckPublisher pattern: '**/dependency-check-report.html'
+        }
+    }
+}
+
+
         stage('Docker Build and Push') {
             steps {
                 withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -45,8 +70,8 @@ pipeline {
                 sshagent(['kube-ssh']) {
                     sh """
                     ssh -o StrictHostKeyChecking=no ditiss@192.168.150.20 \"
-                        sed -i 's|image: prathameshj08/pet-clinic:.*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|' ~/Desktop/Project/deployment.yml &&
-                        kubectl apply -f ~/Desktop/Project/deployment.yml &&
+                        sed -i 's|image: prathameshj08/pet-clinic:.*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|' ~/Desktop/Project/deployment.yml && \
+                        kubectl apply -f ~/Desktop/Project/deployment.yml && \
                         kubectl rollout restart deployment petclinic-deployment
                     \"
                     """
@@ -63,7 +88,7 @@ pipeline {
             echo "✅ Build and deployment succeeded!"
         }
         failure {
-            echo "❌ Build or deployment failed. Check Jenkins logs."
+            echo "❌ Build or deployment failed!"
         }
     }
 }
