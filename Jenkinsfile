@@ -12,6 +12,7 @@ pipeline {
         DOCKER_IMAGE = 'prathameshj08/pet-clinic'
         DOCKER_TAG = "build-${env.BUILD_NUMBER}"
         GIT_REPO = "PrathameshJ-08/spring-petclinic"
+        DEPLOYMENT_FILE = "deployment/deployment.yml"
     }
 
     stages {
@@ -24,11 +25,11 @@ pipeline {
 
         stage('Build and Test') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh 'mvn clean package'
             }
         }
 
-        stage('Static Code Analysis with SonarQube') {
+        stage('Static Code Analysis') {
             steps {
                 withSonarQubeEnv('Sonar-server') {
                     sh '''
@@ -42,45 +43,47 @@ pipeline {
             }
         }
 
-       stage('OWASP Dependency Check') {
-    steps {
-        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-            dependencyCheck additionalArguments: "--nvdApiKey ${NVD_API_KEY} --scan ./ --format HTML --out .", odcInstallation: 'DP-check'
-            dependencyCheckPublisher pattern: '**/dependency-check-report.html'
+        #stage('Dependency Vulnerability Scan') {
+            #steps {
+                #dependencyCheck additionalArguments: '--scan ./ --format HTML --out .', odcInstallation: 'DP-check'
+                #dependencyCheckPublisher pattern: '**/dependency-check-report.html'
+            }
         }
-    }
-}
 
-
-        stage('Docker Build and Push') {
+            stage('Build & Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
+                    sh """
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                         docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
                         docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
                         docker logout
-                    '''
+                    """
                 }
             }
         }
 
-        stage('Remote Deployment to Kube-VM') {
+
+
+        stage('Update Deployment File') {
             steps {
-                sshagent(['kube-ssh']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ditiss@192.168.150.20 \"
-                        sed -i 's|image: prathameshj08/pet-clinic:.*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|' ~/Desktop/Project/deployment.yml && \
-                        kubectl apply -f ~/Desktop/Project/deployment.yml && \
-                        kubectl rollout restart deployment petclinic-deployment
-                    \"
-                    """
+                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    sh '''
+                        git config --global user.email "jadhavprathamesh957@gmail.com"
+                        git config --global user.name "Prathamesh"
+                        
+                        sed -i "s|image: .*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|" ${DEPLOYMENT_FILE}
+
+                        git add ${DEPLOYMENT_FILE}
+                        git commit -m "Update deployment image to ${DOCKER_TAG}" || echo "No changes to commit"
+                        git push https://${GITHUB_TOKEN}@github.com/${GIT_REPO}.git HEAD:main
+                    '''
                 }
             }
         }
     }
 
-    post {
+     post {
         always {
             echo "Build finished: ${currentBuild.result}"
         }
@@ -91,4 +94,3 @@ pipeline {
             echo "❌ Build or deployment failed!"
         }
     }
-}

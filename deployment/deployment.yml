@@ -2,8 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: petclinic
+  labels:
+    app: petclinic
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: petclinic
@@ -14,7 +16,5 @@ spec:
     spec:
       containers:
       - name: petclinic
-        image: prathameshj08/pet-clinic:build-15
+        image: prathameshj08/pet-clinic:build-1
         ports:
-        - containerPort: 8080
-
