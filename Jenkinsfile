@@ -76,14 +76,13 @@ pipeline {
         }
     }
 
-
-	 post {
+       post {
         success {
             emailext(
                 subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """<p>Build succeeded.</p><p><a href="${env.BUILD_URL}">View Build</a></p>""",
                 mimeType: 'text/html',
-                to: 'pajadhav123456@gmail.com'
+                to: 'jadhavprathamesh957@gmail.com'
             )
         }
         failure {
@@ -91,7 +90,7 @@ pipeline {
                 subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """<p>Build failed.</p><p><a href="${env.BUILD_URL}">View Build</a></p>""",
                 mimeType: 'text/html',
-                to: 'pajadhav123456@gmail.com'
+                to: 'jadhavprathamesh957@gmail.com'
             )
         }
     }
