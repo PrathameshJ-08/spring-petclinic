@@ -76,7 +76,7 @@ pipeline {
         }
     }
 
-     post {
+      post {
         always {
             echo "Build finished: ${currentBuild.result}"
         }
@@ -85,6 +85,15 @@ pipeline {
         }
         failure {
             echo "❌ Build or deployment failed!"
+            emailext(
+                subject: "❌ Build failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <p>Build failed for ${env.JOB_NAME} #${env.BUILD_NUMBER}</p>
+                    <p><b>Details:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                """,
+                to: 'team@example.com',
+                mimeType: 'text/html'
+            )
         }
     }
 }
