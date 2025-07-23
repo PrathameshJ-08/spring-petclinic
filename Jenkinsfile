@@ -91,7 +91,7 @@ pipeline {
                     <p>Build failed for ${env.JOB_NAME} #${env.BUILD_NUMBER}</p>
                     <p><b>Details:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
                 """,
-                to: 'team@example.com',
+                to: 'pajadhav123456@gmail.com',
                 mimeType: 'text/html'
             )
         }
