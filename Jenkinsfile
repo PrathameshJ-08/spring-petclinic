@@ -76,31 +76,30 @@ pipeline {
         }
     }
 
-     post {
-    always {
-        echo "📦 Build finished: ${currentBuild.result}"
-    }
+post {
     success {
-        echo "✅ Build and deployment succeeded!"
         emailext(
-            subject: "✅ Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            to: 'pajadhav123456@gmail.com',
+            subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
             body: """
-                <p>Build succeeded for <b>${env.JOB_NAME}</b> #${env.BUILD_NUMBER}</p>
-                <p><b>Details:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                <p>Good news!</p>
+                <p><strong>Job:</strong> ${env.JOB_NAME}</p>
+                <p><strong>Build:</strong> #${env.BUILD_NUMBER}</p>
+                <p><a href="${env.BUILD_URL}">View Build</a></p>
             """,
-            to: 'pajadhav123456@gmail.com'
+            mimeType: 'text/html'
         )
     }
     failure {
-        echo "❌ Build or deployment failed!"
         emailext(
-            subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            to: 'pajadhav123456@gmail.com',
+            subject: "❌ FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
             body: """
-                <p>Build failed for <b>${env.JOB_NAME}</b> #${env.BUILD_NUMBER}</p>
-                <p><b>Details:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                <p><strong>Job:</strong> ${env.JOB_NAME}</p>
+                <p><strong>Build:</strong> #${env.BUILD_NUMBER}</p>
+                <p><a href="${env.BUILD_URL}">View Build</a></p>
             """,
-            to: 'pajadhav123456@gmail.com'
+            mimeType: 'text/html'
         )
     }
 }
-
