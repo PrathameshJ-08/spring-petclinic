@@ -44,11 +44,14 @@ pipeline {
         }
 
 	stage('Dependency Vulnerability Scan') {
-            steps {
-                dependencyCheck additionalArguments: '--scan ./ --format HTML --out .', odcInstallation: 'DP-check'
-                dependencyCheckPublisher pattern: '**/dependency-check-report.html'
+	   steps {
+	      withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+	         dependencyCheck additionalArguments: "--scan ./ --format HTML --out . --nvdApiKey $NVD_API_KEY", odcInstallation: 'DP-check'
+	      }
+	      dependencyCheckPublisher pattern: '**/dependency-check-report.html'
             }
-        }
+         }
+
 
          stage('Build & Push Docker Image') {
             steps {
