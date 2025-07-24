@@ -43,18 +43,19 @@ pipeline {
             }
         }
 
-	stage('Dependency Vulnerability Scan') {
+
+	 stage('Dependency Vulnerability Scan') {
     steps {
         withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-            dependencyCheck additionalArguments: '--scan ./ --format HTML --out . --nvdApiKey ' + NVD_API_KEY + ' --nvdValidForHours 1', 
+            dependencyCheck additionalArguments: '--scan ./ --format HTML --out . --nvdApiKey ' + NVD_API_KEY + ' --nvdValidForHours 87600 --data /var/lib/jenkins/odc-data',
                              odcInstallation: 'DP-check'
         }
         dependencyCheckPublisher pattern: '**/dependency-check-report.html'
     }
 }
 
-
-
+    
+    
          stage('Build & Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -88,22 +89,29 @@ pipeline {
         }
     }
 
-       post {
-        success {
-            emailext(
-                subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """<p>Build succeeded.</p><p><a href="${env.BUILD_URL}">View Build</a></p>""",
-                mimeType: 'text/html',
-                to: 'jadhavprathamesh957@gmail.com'
-            )
-        }
-        failure {
-            emailext(
-                subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """<p>Build failed.</p><p><a href="${env.BUILD_URL}">View Build</a></p>""",
-                mimeType: 'text/html',
-                to: 'jadhavprathamesh957@gmail.com'
-            )
-        }
+       
+    post {
+    success {
+        emailext(
+            subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            body: """<p>Build succeeded.</p>
+                     <p><a href="${env.BUILD_URL}">View Build</a></p>
+                     <p>See attached Dependency-Check report.</p>""",
+            mimeType: 'text/html',
+            to: 'jadhavprathamesh957@gmail.com',
+            attachmentsPattern: '**/dependency-check-report.html'
+        )
+    }
+    failure {
+        emailext(
+            subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            body: """<p>Build failed.</p>
+                     <p><a href="${env.BUILD_URL}">View Build</a></p>
+                     <p>See attached Dependency-Check report if available.</p>""",
+            mimeType: 'text/html',
+            to: 'jadhavprathamesh957@gmail.com',
+            attachmentsPattern: '**/dependency-check-report.html'
+        )
     }
 }
+
