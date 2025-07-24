@@ -43,7 +43,14 @@ pipeline {
             }
         }
 
-            stage('Build & Push Docker Image') {
+	stage('Dependency Vulnerability Scan') {
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ --format HTML --out .', odcInstallation: 'DP-check'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.html'
+            }
+        }
+
+         stage('Build & Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh """
