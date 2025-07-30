@@ -16,5 +16,5 @@ spec:
     spec:
       containers:
       - name: petclinic
-        image: prathameshj08/pet-clinic:build-1
+        image: prathameshj08/pet-clinic:build-110
         ports:
