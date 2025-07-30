@@ -1,3 +1,7 @@
+give steps to add  trivy on my jenkins vm
+
+
+BELOW IS MY CURRENT JENKINSFILE
 pipeline {
     agent any
 
@@ -109,16 +113,22 @@ pipeline {
             attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
         )
     }
+    post {
     failure {
-        emailext(
-            subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            body: """<p>Build failed.</p>
-                     <p><a href="${env.BUILD_URL}">View Build</a></p>
-                     <p>See attached Dependency-Check report if available.</p>""",
-            mimeType: 'text/html',
-            to: 'jadhavprathamesh957@gmail.com',
-            attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
-        )
-    }
-}
-}
+        script {
+            def logSnippet = currentBuild.rawBuild.getLog(100).join("\n")
+            emailext(
+                subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """<p><b>Build failed</b></p>
+                         <p><a href="${env.BUILD_URL}">View Full Build</a></p>
+                         <p><b>Last 100 lines of console output:</b></p>
+                         <pre>${logSnippet}</pre>""",
+                mimeType: 'text/html',
+                to: 'jadhavprathamesh957@gmail.com',
+                attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
+            )
+         }
+       }
+     }
+   }
+ }
