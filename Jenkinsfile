@@ -113,7 +113,7 @@ pipeline {
             attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
         )
     }
-    post {
+post {
     failure {
         script {
             def logSnippet = currentBuild.rawBuild.getLog(100).join("\n")
@@ -127,8 +127,9 @@ pipeline {
                 to: 'jadhavprathamesh957@gmail.com',
                 attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
             )
-         }
-       }
-     }
+        }
+    }
+}
+
    }
  }
