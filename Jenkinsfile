@@ -101,23 +101,23 @@ pipeline {
             subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
             body: """<p>Build succeeded.</p>
                      <p><a href="${env.BUILD_URL}">View Build</a></p>
-                     <p>See attached Dependency-Check report.</p>""",
+                     <p>See attached reports.</p>""",
             mimeType: 'text/html',
             to: 'jadhavprathamesh957@gmail.com',
             attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
         )
     }
- 
     failure {
         script {
-            def logLines = currentBuild.rawBuild?.getLog(100)?.join('\n') ?: "No log available."
-
+            // Collect last 100 lines of console output
+            def logLines = currentBuild.rawBuild.getLog(100).join('\n')
             emailext(
-                subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """<p>Build failed.</p>
                          <p><a href="${env.BUILD_URL}">View Build</a></p>
                          <p><b>Last 100 lines of the console log:</b></p>
-                         <pre>${logLines}</pre>""",
+                         <pre>${logLines}</pre>
+                         <p>Check attached reports if available.</p>""",
                 mimeType: 'text/html',
                 to: 'jadhavprathamesh957@gmail.com',
                 attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
@@ -126,4 +126,4 @@ pipeline {
     }
 }
 
-}
+
