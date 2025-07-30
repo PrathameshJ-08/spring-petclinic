@@ -1,3 +1,7 @@
+give steps to add  trivy on my jenkins vm
+
+
+BELOW IS MY CURRENT JENKINSFILE
 pipeline {
     agent any
 
@@ -52,7 +56,9 @@ pipeline {
         }
         dependencyCheckPublisher pattern: '**/dependency-check-report.html'
     }
-}    
+}
+
+    
     
          stage('Build & Push Docker Image') {
             steps {
@@ -93,7 +99,8 @@ pipeline {
             }
         }
     }
-      
+
+       
     post {
     success {
         emailext(
@@ -116,7 +123,6 @@ pipeline {
             to: 'jadhavprathamesh957@gmail.com',
             attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
         )
-      }
     }
-  }
+}
 }
