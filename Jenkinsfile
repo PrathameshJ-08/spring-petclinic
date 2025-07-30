@@ -92,43 +92,38 @@ pipeline {
             }
         }
     }
+post {
+    success {
+        emailext(
+            subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            body: """<p>Build succeeded.</p>
+                     <p><a href="${env.BUILD_URL}">View Build</a></p>
+                     <p>See attached Dependency-Check and Trivy reports.</p>""",
+            mimeType: 'text/html',
+            to: 'jadhavprathamesh957@gmail.com',
+            attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
+        )
+    }
 
-    post {
-        success {
-            emailext(
-                subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """<p>Build succeeded.</p>
-                         <p><a href="${env.BUILD_URL}">View Build</a></p>
-                         <p>See attached Dependency-Check and Trivy reports.</p>""",
-                mimeType: 'text/html',
-                to: 'jadhavprathamesh957@gmail.com',
-                attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
-            )
-        }
-
-        post {
     failure {
         script {
-            def logSnippet = Jenkins.instance.getItemByFullName(env.JOB_NAME)
-                .getBuildByNumber(env.BUILD_NUMBER.toInteger())
-                .logText
-                .readLines()
-                .takeRight(100)
-                .join("\n")
+            sh 'tail -n 100 "$WORKSPACE/../${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/log" > failure-snippet.txt || echo "Log not found" > failure-snippet.txt'
+
+            archiveArtifacts artifacts: 'failure-snippet.txt', allowEmptyArchive: true
 
             emailext(
                 subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """<p><b>Build failed</b></p>
                          <p><a href="${env.BUILD_URL}">View Full Build</a></p>
-                         <p><b>Last 100 lines of console output:</b></p>
-                         <pre>${logSnippet}</pre>""",
+                         <p>See attached reports and log snippet for error details.</p>""",
                 mimeType: 'text/html',
                 to: 'jadhavprathamesh957@gmail.com',
-                attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
+                attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt, **/failure-snippet.txt'
             )
         }
     }
 }
+
 
     }
 }
