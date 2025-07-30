@@ -116,6 +116,7 @@ pipeline {
             to: 'jadhavprathamesh957@gmail.com',
             attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
         )
+      }
     }
-}
+  }
 }
