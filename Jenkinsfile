@@ -100,20 +100,19 @@ pipeline {
         }
     }
 
-       
-    post {
+post {
     success {
         emailext(
             subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
             body: """<p>Build succeeded.</p>
                      <p><a href="${env.BUILD_URL}">View Build</a></p>
-                     <p>See attached Dependency-Check report.</p>""",
+                     <p>See attached Dependency-Check and Trivy reports.</p>""",
             mimeType: 'text/html',
             to: 'jadhavprathamesh957@gmail.com',
             attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
         )
     }
-post {
+
     failure {
         script {
             def logSnippet = currentBuild.rawBuild.getLog(100).join("\n")
