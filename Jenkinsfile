@@ -107,9 +107,9 @@ pipeline {
             attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
         )
     }
+ 
     failure {
-    script {
-        def buildLog = currentBuild.rawBuild.getLog(100).join('\n')
+        def buildLog = currentBuild.getRawBuild().getLog(100).join('\n')
         emailext(
             subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
             body: """<p>Build failed.</p>
@@ -122,7 +122,7 @@ pipeline {
             attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
         )
     }
-}
+
 }
 
 }
