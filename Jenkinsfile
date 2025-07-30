@@ -92,38 +92,30 @@ pipeline {
             }
         }
     }
-post {
-    success {
-        emailext(
-            subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            body: """<p>Build succeeded.</p>
-                     <p><a href="${env.BUILD_URL}">View Build</a></p>
-                     <p>See attached Dependency-Check and Trivy reports.</p>""",
-            mimeType: 'text/html',
-            to: 'jadhavprathamesh957@gmail.com',
-            attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
-        )
-    }
 
-    failure {
-        script {
-            sh 'tail -n 100 "$WORKSPACE/../${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/log" > failure-snippet.txt || echo "Log not found" > failure-snippet.txt'
-
-            archiveArtifacts artifacts: 'failure-snippet.txt', allowEmptyArchive: true
-
+    post {
+        success {
             emailext(
-                subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """<p><b>Build failed</b></p>
-                         <p><a href="${env.BUILD_URL}">View Full Build</a></p>
-                         <p>See attached reports and log snippet for error details.</p>""",
+                subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """<p>Build succeeded.</p>
+                         <p><a href="${env.BUILD_URL}">View Build</a></p>
+                         <p>See attached Dependency-Check and Trivy reports.</p>""",
                 mimeType: 'text/html',
                 to: 'jadhavprathamesh957@gmail.com',
-                attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt, **/failure-snippet.txt'
+                attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
             )
         }
-    }
-}
 
-
+        failure {
+            emailext(
+                subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """<p><b>Build failed.</b></p>
+                         <p><a href="${env.BUILD_URL}">View Build</a></p>
+                         <p>See attached reports for error details.</p>""",
+                mimeType: 'text/html',
+                to: 'jadhavprathamesh957@gmail.com',
+                attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
+            )
+        }
     }
 }
