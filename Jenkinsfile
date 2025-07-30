@@ -52,9 +52,7 @@ pipeline {
         }
         dependencyCheckPublisher pattern: '**/dependency-check-report.html'
     }
-}
-
-    
+}    
     
          stage('Build & Push Docker Image') {
             steps {
@@ -69,7 +67,14 @@ pipeline {
             }
         }
 
-
+        stage('Container Vulnerability Scan - Trivy') {
+            steps {
+                sh """
+                    trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${DOCKER_TAG} > trivy-report.txt
+                """
+                archiveArtifacts artifacts: 'trivy-report.txt', allowEmptyArchive: true
+            }
+        }
 
         stage('Update Deployment File') {
             steps {
@@ -93,24 +98,28 @@ pipeline {
     post {
     success {
         emailext(
-            subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
             body: """<p>Build succeeded.</p>
                      <p><a href="${env.BUILD_URL}">View Build</a></p>
                      <p>See attached Dependency-Check report.</p>""",
             mimeType: 'text/html',
             to: 'jadhavprathamesh957@gmail.com',
-            attachmentsPattern: '**/dependency-check-report.html'
+            attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
         )
     }
     failure {
+    script {
+        def buildLog = currentBuild.rawBuild.getLog(100).join('\n')
         emailext(
             subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
             body: """<p>Build failed.</p>
                      <p><a href="${env.BUILD_URL}">View Build</a></p>
-                     <p>See attached Dependency-Check report if available.</p>""",
+                     <p><b>Last 100 lines of the console log:</b></p>
+                     <pre>${buildLog}</pre>
+                     <p>See attached reports if available.</p>""",
             mimeType: 'text/html',
             to: 'jadhavprathamesh957@gmail.com',
-            attachmentsPattern: '**/dependency-check-report.html'
+            attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
         )
     }
 }
