@@ -43,20 +43,17 @@ pipeline {
             }
         }
 
-
-	 stage('Dependency Vulnerability Scan') {
-    steps {
-        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-            dependencyCheck additionalArguments: '--scan ./ --format HTML --out . --nvdApiKey ' + NVD_API_KEY + ' --nvdValidForHours 87600 --data /var/lib/jenkins/odc-data',
-                             odcInstallation: 'DP-check'
+        stage('Dependency Vulnerability Scan') {
+            steps {
+                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                    dependencyCheck additionalArguments: '--scan ./ --format HTML --out . --nvdApiKey ' + NVD_API_KEY + ' --nvdValidForHours 87600 --data /var/lib/jenkins/odc-data',
+                                     odcInstallation: 'DP-check'
+                }
+                dependencyCheckPublisher pattern: '**/dependency-check-report.html'
+            }
         }
-        dependencyCheckPublisher pattern: '**/dependency-check-report.html'
-    }
-}
 
-    
-    
-         stage('Build & Push Docker Image') {
+        stage('Build & Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh """
@@ -84,9 +81,9 @@ pipeline {
                     sh '''
                         git config --global user.email "jadhavprathamesh957@gmail.com"
                         git config --global user.name "Prathamesh"
-                        
+
                         sed -i "s|image: .*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|" ${DEPLOYMENT_FILE}
-		
+
                         git add ${DEPLOYMENT_FILE}
                         git commit -m "Update deployment image to ${DOCKER_TAG}" || echo "No changes to commit"
                         git push https://${GITHUB_TOKEN}@github.com/${GIT_REPO}.git HEAD:main
@@ -96,36 +93,33 @@ pipeline {
         }
     }
 
-post {
-    success {
-        emailext(
-            subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            body: """<p>Build succeeded.</p>
-                     <p><a href="${env.BUILD_URL}">View Build</a></p>
-                     <p>See attached Dependency-Check and Trivy reports.</p>""",
-            mimeType: 'text/html',
-            to: 'jadhavprathamesh957@gmail.com',
-            attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
-        )
-    }
-
-    failure {
-        script {
-            def logSnippet = currentBuild.rawBuild.getLog(100).join("\n")
+    post {
+        success {
             emailext(
-                subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """<p><b>Build failed</b></p>
-                         <p><a href="${env.BUILD_URL}">View Full Build</a></p>
-                         <p><b>Last 100 lines of console output:</b></p>
-                         <pre>${logSnippet}</pre>""",
+                subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """<p>Build succeeded.</p>
+                         <p><a href="${env.BUILD_URL}">View Build</a></p>
+                         <p>See attached Dependency-Check and Trivy reports.</p>""",
                 mimeType: 'text/html',
                 to: 'jadhavprathamesh957@gmail.com',
                 attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
             )
         }
+
+        failure {
+            script {
+                def logSnippet = currentBuild.rawBuild.getLog(100).join("\n")
+                emailext(
+                    subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    body: """<p><b>Build failed</b></p>
+                             <p><a href="${env.BUILD_URL}">View Full Build</a></p>
+                             <p><b>Last 100 lines of console output:</b></p>
+                             <pre>${logSnippet}</pre>""",
+                    mimeType: 'text/html',
+                    to: 'jadhavprathamesh957@gmail.com',
+                    attachmentsPattern: '**/dependency-check-report.html, **/trivy-report.txt'
+                )
+            }
+        }
     }
 }
-
-   }
- }
-
