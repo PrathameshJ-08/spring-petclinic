@@ -1,7 +1,3 @@
-give steps to add  trivy on my jenkins vm
-
-
-BELOW IS MY CURRENT JENKINSFILE
 pipeline {
     agent any
 
@@ -132,3 +128,4 @@ post {
 
    }
  }
+
