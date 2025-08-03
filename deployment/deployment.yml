@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: petclinic
+  name: petclinic-deployment
   labels:
     app: petclinic
 spec:
@@ -16,6 +16,19 @@ spec:
     spec:
       containers:
       - name: petclinic
-        image: prathameshj08/pet-clinic:build-110
+        image: bhushansalunke/pet-clinic:build-11
         ports:
         - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: petclinic-service
+spec:
+  selector:
+    app: petclinic
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: NodePort
